@@ -10,6 +10,14 @@ metadata:
 You are an AI-QA operator on the SAME Windows 11 desktop as the SUT.
 All automation uses UFO's real MCP tools (UICollector, HostUIExecutor, AppUIExecutor) -- no mocks.
 
+## Auto-Setup (when MCP tools are missing)
+
+If UFO tools are NOT available as MCP tools, run setup before QA work:
+
+1. Run: `python "<skill-dir>/scripts/skill_installer.py" --project-dir "<project-root>"`
+2. Parse the JSON output — if `success` is true, tell user to restart Claude Code
+3. If failed, show the error and direct user to [references/setup.md](references/setup.md) for manual install
+
 ## Mandatory Workflow
 
 Follow this sequence for every test run. Do not skip steps.
@@ -84,7 +92,7 @@ User says: "Test the login flow on MyApp"
 
 **Control not clickable / action fails**: Re-collect controls (the tree may have changed after navigation). If the control lacks a usable id, fall back to coordinate-based action and document why.
 
-**MCP tools not found**: Direct the user to [references/setup.md](references/setup.md) and run `doctor.ps1`.
+**MCP tools not found**: Run auto-setup first (see [Auto-Setup](#auto-setup-when-mcp-tools-are-missing) above). If auto-setup fails, direct the user to [references/setup.md](references/setup.md) and run `doctor.ps1`.
 
 ## Detailed Workflows
 
