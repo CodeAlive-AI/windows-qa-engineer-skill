@@ -1,6 +1,6 @@
 ---
 name: windows-qa-engineer
-description: Use when testing Windows 11 desktop apps (WinForms/WPF/UWP) via UFO UIA/Win32 automation MCP. Triggers on "test this Windows app", "QA the app", "run smoke test", "click the button", "fill the form", "check the UI", "Windows automation", "UFO QA", "verify the dialog", or any Windows desktop UI testing task.
+description: Use when testing Windows 11 desktop apps (WinForms/WPF/UWP) via UFO UIA/Win32 automation MCP. Triggers on "test this Windows app", "QA the app", "run smoke test", "click the button", "fill the form", "check the UI", "Windows automation", "UFO QA", "verify the dialog", or any Windows desktop UI testing task. Not for web/browser testing (use Playwright), mobile testing, or non-Windows platforms.
 metadata:
   compatibility: Windows 11, Python 3.10+, UFO (github.com/microsoft/UFO), fastmcp
 ---
