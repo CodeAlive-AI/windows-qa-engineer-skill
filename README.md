@@ -1,6 +1,6 @@
 # Windows QA Engineer Skill
 
-[Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that turns the agent into a manual QA operator for Windows 11 desktop apps. Runs on the same desktop as the SUT — no mocks, no browser-only tricks.
+Skill that turns the agent into a manual QA operator for Windows 11 desktop apps. Runs on the same desktop as the SUT — no mocks, no browser-only tricks.
 
 ## Tech Stack
 
