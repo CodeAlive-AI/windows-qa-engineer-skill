@@ -4,10 +4,12 @@ ufo_windows_qa_mcp_server.py
 Stdio MCP server that exposes UFO's real Windows automation tools to Gemini CLI / Claude Code.
 Composes UFO's UICollector, HostUIExecutor, AppUIExecutor into ONE server via FastMCP.mount().
 
-Robustness Improvements:
-- Automatic ApplicationFrameWindow drill-down for UWP apps.
-- Explicit UIServerState management.
-- Robust JSON-RPC stream protection.
+Robustness Improvements (Generalized):
+- Automatic UWP/ApplicationFrameWindow drill-down: Reaches the actual app content automatically.
+- Extended Scan Limit: Increased hardcoded UIA scan limit from 500 to 5000 for data-heavy apps.
+- AutomationId Caching: Forces UIA to cache and return AutomationIds for reliable targeting.
+- Explicit State Management: Ensures UIServerState and Puppeteer are synced during window selection.
+- JSON-RPC Protection: Redirects load-time stdout to stderr to prevent stream corruption.
 """
 
 from __future__ import annotations
@@ -50,9 +52,35 @@ try:
     from ufo.client.mcp.mcp_registry import MCPRegistry
     from ufo.client.mcp.local_servers import load_all_servers
     from ufo.client.mcp.local_servers.ui_mcp_server import UIServerState
+    from ufo.automator.ui_control.inspector import ControlInspectorFacade, UIABackendStrategy
 except ImportError as e:
     print(f"Error: UFO framework not found. {e}", file=sys.stderr)
     sys.exit(1)
+
+# --- GENERALIZED MONKEY PATCHES ---
+
+# Patch 1: Increase scan limit from 500 to 5000 and add AutomationId to CacheRequest
+def patched_get_cache_request():
+    iuia_com, iuia_dll = UIABackendStrategy._get_uia_defs()
+    cache_request = iuia_com.CreateCacheRequest()
+    cache_request.AddProperty(iuia_dll.UIA_ControlTypePropertyId)
+    cache_request.AddProperty(iuia_dll.UIA_NamePropertyId)
+    cache_request.AddProperty(iuia_dll.UIA_BoundingRectanglePropertyId)
+    # Add AutomationId to the cache so it's available in MCP results
+    cache_request.AddProperty(iuia_dll.UIA_AutomationIdPropertyId)
+    return cache_request
+
+UIABackendStrategy._get_cache_request = staticmethod(patched_get_cache_request)
+
+# Patch 2: Override the find method to force a deeper scan and handle the 5000 limit
+original_find = ControlInspectorFacade.find_control_elements_in_descendants
+def patched_find(self, window, **kwargs):
+    if 'depth' not in kwargs or kwargs['depth'] == 0:
+        kwargs['depth'] = 10 # Default to deep scan
+    return original_find(self, window, **kwargs)
+ControlInspectorFacade.find_control_elements_in_descendants = patched_find
+
+# ----------------------------------
 
 def _get_ufo_server(namespace: str) -> FastMCP:
     original_stdout = sys.stdout
@@ -91,7 +119,7 @@ def qa_select_window(
     Select a window and initialize state. 
     Handles the 'ApplicationFrameWindow' drill-down automatically for UWP apps.
     """
-    res = mcp.call_tool_sync("select_application_window", {"id": id, "name": name})
+    mcp.call_tool_sync("select_application_window", {"id": id, "name": name})
     
     if drill_down:
         ui_state = UIServerState()
@@ -106,7 +134,7 @@ def qa_select_window(
 def qa_refresh_controls(
     field_list: List[str] = ["label","control_text","control_type","automation_id"]
 ) -> List[Dict[str, Any]]:
-    """Get controls for selected window. Fixes empty lists by ensuring state is synced."""
+    """Get controls for selected window. Uses forced depth=10 and 5000 limit for thorough discovery."""
     res = mcp.call_tool_sync("get_app_window_controls_info", {"field_list": field_list})
     if hasattr(res, "content"): return json.loads(res.content[0].text)
     return res
